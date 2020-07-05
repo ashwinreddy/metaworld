@@ -8,6 +8,8 @@ import numpy as np
 class MT10(MultiClassMultiTaskEnv, Benchmark):
 
     def __init__(self, env_type="train", sample_all=False, task_name=None):
+        del env_type
+
         if task_name is not None:
             if task_name not in EASY_MODE_CLS_DICT:
                 raise ValueError("{} does not exist in MT10 tasks".format(
@@ -16,7 +18,10 @@ class MT10(MultiClassMultiTaskEnv, Benchmark):
             args_kwargs = {task_name: EASY_MODE_ARGS_KWARGS[task_name]}
         else:
             cls_dict = EASY_MODE_CLS_DICT
-            args_kwargs = EASY_MODE_ARGS_KWARGS
+            args_kwargs = EASY_MODE_ARGS_KWARGS.copy()
+
+        for env_args_kwargs in args_kwargs.values():
+            env_args_kwargs['kwargs']['random_init'] = False
 
         super().__init__(
             task_env_cls_dict=cls_dict,
@@ -47,10 +52,11 @@ class MT10(MultiClassMultiTaskEnv, Benchmark):
         obs_dim = _max_obs_dim + _num_envs
         return Box(low=-np.inf, high=np.inf, shape=(obs_dim,))
 
-    def _augment_observation(self, obs):
+    @property
+    def active_task_one_hot(self):
         """Remove the last 40 element of obs's one hot because they are redundant
         (zeroed out due to their being 10 tasks in MT10 only).
         """
-        obs = super()._augment_observation(obs)
-        obs = obs[:-40]
-        return obs
+        one_hot = super().active_task_one_hot
+        one_hot = one_hot[:-40]
+        return one_hot

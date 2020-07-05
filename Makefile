@@ -19,25 +19,27 @@ check-memory: run
 	@echo "Profiling memory usage..."
 
 ci-job:
-	pytest -n $$(nproc) --cov=metaworld -v
+	pytest -n 0 --cov=metaworld -v -m 'not large and not skip_on_ci'
 	coverage xml
 	# bash <(curl -s https://codecov.io/bash)
 
 ci-deploy-docker:
 	echo "${DOCKER_API_KEY}" | docker login -u "${DOCKER_USERNAME}" \
 		--password-stdin
-	docker tag "${TAG}" ryanjulian/metaworld-ci:latest
-	docker push ryanjulian/metaworld-ci
+	docker tag "${TAG}" rlworkgroup/metaworld-ci:latest
+	docker push rlworkgroup/metaworld-ci
 
-build-ci: TAG ?= ryanjulian/metaworld-ci:latest
-build-ci: docker/docker-compose.yml
+build-ci: TAG ?= rlworkgroup/metaworld-ci:latest
+build-ci: docker/Dockerfile
 	TAG=${TAG} \
-	docker-compose \
-		-f docker/docker-compose.yml \
-		build \
-		${ADD_ARGS}
+	docker build \
+		--cache-from rlworkgroup/metaworld-ci:latest \
+		-f docker/Dockerfile \
+		-t ${TAG} \
+		${ADD_ARGS} \
+		.
 
-run-ci: TAG ?= ryanjulian/metaworld-ci
+run-ci: TAG ?= rlworkgroup/metaworld-ci
 run-ci:
 	docker run \
 		-e TRAVIS_BRANCH \
@@ -45,6 +47,8 @@ run-ci:
 		-e TRAVIS_COMMIT_RANGE \
 		-e TRAVIS \
 		-e MJKEY \
+		--memory 7500m \
+		--memory-swap 7500m \
 		${ADD_ARGS} \
 		${TAG} ${RUN_CMD}
 
@@ -55,9 +59,11 @@ run: build-ci
 		-it \
 		--rm \
 		-e MJKEY="$$(cat $(MJKEY_PATH))" \
+		--memory 7500m \
+		--memory-swap 7500m \
 		--name $(CONTAINER_NAME) \
 		${ADD_ARGS} \
-		ryanjulian/metaworld-ci $(RUN_CMD)
+		rlworkgroup/metaworld-ci $(RUN_CMD)
 
 # Help target
 # See https://marmelab.com/blog/2016/02/29/auto-documented-makefile.html

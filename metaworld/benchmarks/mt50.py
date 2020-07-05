@@ -7,6 +7,7 @@ from metaworld.envs.mujoco.env_dict import HARD_MODE_ARGS_KWARGS, HARD_MODE_CLS_
 class MT50(MultiClassMultiTaskEnv, Benchmark):
 
     def __init__(self, env_type="train", sample_all=False, task_name=None):
+        del env_type
 
         cls_dict = {}
         args_kwargs = {}
@@ -21,6 +22,9 @@ class MT50(MultiClassMultiTaskEnv, Benchmark):
                     task_name))
             cls_dict = {task_name: cls_dict[task_name]}
             args_kwargs = {task_name: args_kwargs[task_name]}
+
+        for env_args_kwargs in args_kwargs.values():
+            env_args_kwargs['kwargs']['random_init'] = False
 
         super().__init__(
             task_env_cls_dict=cls_dict,
